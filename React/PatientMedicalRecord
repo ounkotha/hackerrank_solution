@@ -1,0 +1,168 @@
+import React, { useState } from "react";
+import "./App.css";
+import "h8k-components";
+import Search from "./components/Search";
+import Records from "./components/Records";
+import medical_records from "./medicalRecords";
+
+const title = "Patient Medical Records";
+
+const App = () => {
+  // selected patient id & record
+  const [id, setId] = useState(null);
+  const [record, setRecord] = useState(null);
+
+  // Next button এর জন্য: পরের patient এ যাওয়া
+  const handleNext = () => {
+    // safety: যদি record না থাকে, কিছু করবে না
+    if (!id) return;
+
+    // current index বের করি (id match করে)
+    const currentIndex = medical_records.findIndex((p) => p.id === id);
+
+    // next index (শেষ হলে 0)
+    const nextIndex = (currentIndex + 1) % medical_records.length;
+
+    // next patient set
+    const nextPatient = medical_records[nextIndex];
+    setId(nextPatient.id);
+    setRecord(nextPatient);
+  };
+
+  return (
+    <div className="App">
+      <h8k-navbar header={title}></h8k-navbar>
+      <div className="content">
+        <Search setRecord={setRecord} setId={setId} />
+
+        {/* Requirement: শুরুতে table/next দেখা যাবে না */}
+        {record && (
+          <Records record={record} onNext={handleNext} />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default App;
+
+import React from "react";
+import medical_records from "../medicalRecords";
+
+function Records({ record, id, setId, setRecord }) {
+  // selected patient এর profile (প্রথম record এ basic info থাকে)
+  const profile = record.data[0];
+
+  const handleNext = () => {
+    // current patient index বের করি
+    const currentIndex = medical_records.findIndex((p) => p.id === id);
+
+    // next index (শেষ হলে 0)
+    const nextIndex = (currentIndex + 1) % medical_records.length;
+
+    const nextPatient = medical_records[nextIndex];
+
+    setId(nextPatient.id);
+    setRecord(nextPatient);
+  };
+
+  return (
+    <div className="patient-profile-container" id="profile-view">
+      <div className="layout-row justify-content-center">
+        <div
+          id="patient-profile"
+          data-testid="patient-profile"
+          className="mx-auto"
+        >
+          <h4 id="patient-name">{profile.userName}</h4>
+          <h5 id="patient-dob">DOB: {profile.userDob}</h5>
+          <h5 id="patient-height">Height: {profile.userHeight}</h5>
+        </div>
+
+        <button className="mt-10 mr-10" data-testid="next-btn" onClick={handleNext}>
+          Next
+        </button>
+      </div>
+
+      <table id="patient-records-table">
+        <thead id="table-header">
+          <tr>
+            <th>SL</th>
+            <th>Date</th>
+            <th>Diagnosis</th>
+            <th>Weight</th>
+            <th>Doctor</th>
+          </tr>
+        </thead>
+
+        <tbody id="table-body" data-testid="patient-table">
+          {record.data.map((r, index) => (
+            <tr key={index}>
+              <td>{index + 1}</td>
+              <td>{r.timestamp}</td>
+              <td>{r.diagnosis.name}</td>
+              <td>{r.meta.weight}</td>
+              <td>{r.doctor.name}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default Records;
+
+
+import React, { useState } from "react";
+import medical_records from "../medicalRecords";
+
+function Search({ setRecord, setId, id }) {
+  // dropdown এ কোনটা সিলেক্ট করা হয়েছে সেটা local state এ রাখছি
+  const [selectedId, setSelectedId] = useState("0");
+
+  const handleShow = () => {
+    // 1) যদি কিছু select না করা থাকে
+    if (selectedId === "0") {
+      alert("Please select a patient name");
+      return;
+    }
+
+    // 2) selected patient খুঁজে বের করি
+    const patient = medical_records.find(
+      (p) => String(p.id) === String(selectedId)
+    );
+
+    // 3) parent এ পাঠাই (Records component দেখানোর জন্য)
+    setId(patient.id);
+    setRecord(patient);
+  };
+
+  return (
+    <div className="layout-row align-items-baseline select-form-container">
+      <div className="select">
+        <select
+          data-testid="patient-name"
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+        >
+          <option value="0" disabled>
+            Select Patient
+          </option>
+
+          {medical_records.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.data[0].userName}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <button type="button" data-testid="show" onClick={handleShow}>
+        Show
+      </button>
+    </div>
+  );
+}
+
+export default Search;
